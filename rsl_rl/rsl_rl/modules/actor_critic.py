@@ -28,53 +28,76 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-import numpy as np
+import typing as tp
+
+from dataclasses import dataclass, field
 
 import torch
 import torch.nn as nn
 from torch.distributions import Normal
-from torch.nn.modules import rnn
+
+ActivationType = tp.Literal["elu", "selu", "relu", "crelu", "lrelu", "tanh", "sigmoid"]
+
+
+@dataclass
+class PolicyConfig:
+    activation: ActivationType = "elu"
+    actor_hidden_dims: tp.List[int] = field(default_factory=lambda: [512, 256, 128])
+    critic_hidden_dims: tp.List[int] = field(default_factory=lambda: [512, 256, 128])
+    init_noise_std: float = 1.0
+
+
+def get_activation(act_name: ActivationType) -> nn.Module:
+    return {"elu": nn.ELU(),
+            "selu": nn.SELU(),
+            "relu": nn.ReLU(),
+            "crelu": nn.ReLU(), 
+            "lrelu": nn.LeakyReLU(),
+            "tanh": nn.Tanh(),
+            "sigmoid": nn.Sigmoid()
+    }[act_name]
+
 
 class ActorCritic(nn.Module):
     is_recurrent = False
-    def __init__(self,  num_actor_obs,
-                        num_critic_obs,
-                        num_actions,
-                        actor_hidden_dims=[256, 256, 256],
-                        critic_hidden_dims=[256, 256, 256],
-                        activation='elu',
-                        init_noise_std=1.0,
-                        **kwargs):
+    def __init__(self, 
+                 num_actor_obs: int,
+                 num_critic_obs: int,
+                 num_actions: int,
+                 policy_config: PolicyConfig = PolicyConfig(),
+                 **kwargs):
         if kwargs:
             print("ActorCritic.__init__ got unexpected arguments, which will be ignored: " + str([key for key in kwargs.keys()]))
         super(ActorCritic, self).__init__()
 
-        activation = get_activation(activation)
+        self.policy_cfg = policy_config
+
+        activation = get_activation(policy_config.activation)
 
         mlp_input_dim_a = num_actor_obs
         mlp_input_dim_c = num_critic_obs
 
         # Policy
         actor_layers = []
-        actor_layers.append(nn.Linear(mlp_input_dim_a, actor_hidden_dims[0]))
+        actor_layers.append(nn.Linear(mlp_input_dim_a, self.policy_cfg.actor_hidden_dims[0]))
         actor_layers.append(activation)
-        for l in range(len(actor_hidden_dims)):
-            if l == len(actor_hidden_dims) - 1:
-                actor_layers.append(nn.Linear(actor_hidden_dims[l], num_actions))
+        for l in range(len(self.policy_cfg.actor_hidden_dims)):
+            if l == len(self.policy_cfg.actor_hidden_dims) - 1:
+                actor_layers.append(nn.Linear(self.policy_cfg.actor_hidden_dims[l], num_actions))
             else:
-                actor_layers.append(nn.Linear(actor_hidden_dims[l], actor_hidden_dims[l + 1]))
+                actor_layers.append(nn.Linear(self.policy_cfg.actor_hidden_dims[l], self.policy_cfg.actor_hidden_dims[l + 1]))
                 actor_layers.append(activation)
         self.actor = nn.Sequential(*actor_layers)
 
         # Value function
         critic_layers = []
-        critic_layers.append(nn.Linear(mlp_input_dim_c, critic_hidden_dims[0]))
+        critic_layers.append(nn.Linear(mlp_input_dim_c, self.policy_cfg.critic_hidden_dims[0]))
         critic_layers.append(activation)
-        for l in range(len(critic_hidden_dims)):
-            if l == len(critic_hidden_dims) - 1:
-                critic_layers.append(nn.Linear(critic_hidden_dims[l], 1))
+        for l in range(len(self.policy_cfg.critic_hidden_dims)):
+            if l == len(self.policy_cfg.critic_hidden_dims) - 1:
+                critic_layers.append(nn.Linear(self.policy_cfg.critic_hidden_dims[l], 1))
             else:
-                critic_layers.append(nn.Linear(critic_hidden_dims[l], critic_hidden_dims[l + 1]))
+                critic_layers.append(nn.Linear(self.policy_cfg.critic_hidden_dims[l], self.policy_cfg.critic_hidden_dims[l + 1]))
                 critic_layers.append(activation)
         self.critic = nn.Sequential(*critic_layers)
 
@@ -82,7 +105,7 @@ class ActorCritic(nn.Module):
         print(f"Critic MLP: {self.critic}")
 
         # Action noise
-        self.std = nn.Parameter(init_noise_std * torch.ones(num_actions))
+        self.std = nn.Parameter(self.policy_cfg.init_noise_std * torch.ones(num_actions))
         self.distribution = None
         # disable args validation for speedup
         Normal.set_default_validate_args = False
@@ -93,80 +116,72 @@ class ActorCritic(nn.Module):
 
     @staticmethod
     # not used at the moment
-    def init_weights(sequential, scales):
+    def init_weights(sequential: tp.List[nn.Module], scales: tp.List[float]):
         [torch.nn.init.orthogonal_(module.weight, gain=scales[idx]) for idx, module in
          enumerate(mod for mod in sequential if isinstance(mod, nn.Linear))]
 
 
-    def reset(self, dones=None):
+    def reset(self, dones: torch.Tensor | None = None):
         pass
 
     def forward(self):
         raise NotImplementedError
     
     @property
-    def action_mean(self):
+    def action_mean(self) -> torch.Tensor:
         return self.distribution.mean
 
     @property
-    def action_std(self):
+    def action_std(self) -> torch.Tensor:
         return self.distribution.stddev
     
     @property
-    def entropy(self):
+    def entropy(self) -> torch.Tensor:
         return self.distribution.entropy().sum(dim=-1)
 
-    def update_distribution(self, observations):
+    def update_distribution(self, observations: torch.Tensor):
         mean = self.actor(observations)
         self.distribution = Normal(mean, mean*0. + self.std)
 
-    def act(self, observations, **kwargs):
+    def act(self, observations: torch.Tensor, **kwargs) -> torch.Tensor:
         self.update_distribution(observations)
         return self.distribution.sample()
     
-    def get_actions_log_prob(self, actions):
+    def get_actions_log_prob(self, actions: torch.Tensor) -> torch.Tensor:
         return self.distribution.log_prob(actions).sum(dim=-1)
 
-    def act_inference(self, observations):
+    def act_inference(self, observations: torch.Tensor) -> torch.Tensor:
         actions_mean = self.actor(observations)
         return actions_mean
 
-    def evaluate(self, critic_observations, **kwargs):
+    def evaluate(self, critic_observations: torch.Tensor, **kwargs) -> torch.Tensor:
         value = self.critic(critic_observations)
         return value
 
+
 class ActorCriticNostd(ActorCritic):
-    def __init__(self, num_actor_obs, num_critic_obs, num_actions, actor_hidden_dims=[256, 256, 256], critic_hidden_dims=[256, 256, 256], activation='elu', init_noise_std=1, **kwargs):
-        super().__init__(num_actor_obs, num_critic_obs, num_actions, actor_hidden_dims, critic_hidden_dims, activation, init_noise_std, **kwargs)
-        self.action = None
+    def __init__(self,
+                 num_actor_obs: int,
+                 num_critic_obs: int,
+                 num_actions: int,
+                 actor_hidden_dims: tp.List[int] = [256, 256, 256],
+                 critic_hidden_dims: tp.List[int] = [256, 256, 256],
+                 activation: ActivationType = 'elu',
+                 init_noise_std: float = 1,
+                 **kwargs):
+        super().__init__(num_actor_obs, num_critic_obs, num_actions,
+                         actor_hidden_dims, critic_hidden_dims,
+                         activation, init_noise_std, **kwargs)
+        self.action: torch.Tensor | None = None
 
     @property
-    def action_mean(self):
+    def action_mean(self) -> torch.Tensor:
         return self.action
 
-    def update_distribution(self, observations):
+    def update_distribution(self, observations: torch.Tensor):
         self.actor.train()
         self.action = self.actor(observations)
 
-    def act(self, observations, **kwargs):
+    def act(self, observations: torch.Tensor, **kwargs) -> torch.Tensor:
         self.update_distribution(observations)
         return self.action_mean
-
-def get_activation(act_name):
-    if act_name == "elu":
-        return nn.ELU()
-    elif act_name == "selu":
-        return nn.SELU()
-    elif act_name == "relu":
-        return nn.ReLU()
-    elif act_name == "crelu":
-        return nn.ReLU()
-    elif act_name == "lrelu":
-        return nn.LeakyReLU()
-    elif act_name == "tanh":
-        return nn.Tanh()
-    elif act_name == "sigmoid":
-        return nn.Sigmoid()
-    else:
-        print("invalid activation function!")
-        return None

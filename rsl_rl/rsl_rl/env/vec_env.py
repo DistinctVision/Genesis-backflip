@@ -28,33 +28,51 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
+import typing as tp
 from abc import ABC, abstractmethod
 import torch
-from typing import Tuple, Union
 
 # minimal interface of the environment
 class VecEnv(ABC):
-    num_envs: int
-    num_obs: int
-    num_privileged_obs: int
-    num_actions: int
-    max_episode_length: int
-    privileged_obs_buf: torch.Tensor
-    obs_buf: torch.Tensor 
-    rew_buf: torch.Tensor
-    reset_buf: torch.Tensor
-    episode_length_buf: torch.Tensor # current episode duration
-    extras: dict
-    device: torch.device
+
+    def __init__(self,
+                 num_envs: int,
+                 num_obs: int,
+                 num_privileged_obs: int,
+                 num_actions: int,
+                 max_episode_length: int,
+                 privileged_obs_buf: torch.Tensor | None = None,
+                 obs_buf: torch.Tensor | None = None,
+                 rew_buf: torch.Tensor | None = None,
+                 reset_buf: torch.Tensor | None = None,
+                 episode_length_buf: torch.Tensor | None = None, # current episode duration
+                 extras: tp.Dict[str, tp.Any] = {},
+                 device: torch.device | str = "cpu"):
+        self.num_envs = num_envs
+        self.num_obs = num_obs
+        self.num_privileged_obs = num_privileged_obs
+        self.num_actions = num_actions
+        self.max_episode_length = max_episode_length
+        self.privileged_obs_buf = privileged_obs_buf
+        self.obs_buf = obs_buf
+        self.rew_buf = rew_buf
+        self.reset_buf = reset_buf
+        self.episode_length_buf = episode_length_buf
+        self.extras = extras
+        self.device = torch.device(device)
+
     @abstractmethod
-    def step(self, actions: torch.Tensor) -> Tuple[torch.Tensor, Union[torch.Tensor, None], torch.Tensor, torch.Tensor, dict]:
-        pass
+    def step(self, actions: torch.Tensor) -> tp.Tuple[torch.Tensor, tp.Union[torch.Tensor, None], torch.Tensor, torch.Tensor, dict]:
+        ...
+    
     @abstractmethod
-    def reset(self, env_ids: Union[list, torch.Tensor]):
-        pass
+    def reset(self, env_ids: tp.Union[list, torch.Tensor]):
+        ...
+    
     @abstractmethod
     def get_observations(self) -> torch.Tensor:
-        pass
+        ...
+    
     @abstractmethod
-    def get_privileged_observations(self) -> Union[torch.Tensor, None]:
-        pass
+    def get_privileged_observations(self) -> tp.Union[torch.Tensor, None]:
+        ...

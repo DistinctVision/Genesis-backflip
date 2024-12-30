@@ -28,71 +28,104 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
+import typing as tp
+
+from pathlib import Path
+
 import time
 import os
 from collections import deque
 import statistics
 
+from dataclasses import dataclass
+
 import torch
 import wandb
 import numpy as np
 
-from rsl_rl.algorithms import PPO
-from rsl_rl.modules import ActorCritic, ActorCriticRecurrent
+from rsl_rl.algorithms import PPO, PpoConfig
+from rsl_rl.modules import ActorCritic, ActorCriticRecurrent, PolicyConfig
 from rsl_rl.env import VecEnv
+
+
+PolicyClassName = tp.Literal["ActorCritic", "ActorCriticRecurrent"]
+AlgorithClassName = tp.Literal["PPO"]
+
+
+@dataclass
+class TrainConfig:
+    algorithm_class_name: AlgorithClassName = "PPO"
+    checkpoint: int = -1
+    experiment_name: str = ""
+    load_run: int = -1
+    log_interval: int = 1
+    max_iterations: int = -1
+    num_steps_per_env: int = 24
+    policy_class_name: PolicyClassName = "ActorCritic"
+    record_interval: int = 50
+    resume: bool = False
+    resume_path: str | Path | None = None
+    run_name: str = ""
+    runner_class_name: str = "runner_class_name"
+    save_interval: int = 100
+
+
+def get_policy_class(policy_class_name: PolicyClassName):
+    if policy_class_name == "ActorCritic":
+        return ActorCritic
+    if policy_class_name == "ActorCriticRecurrent":
+        return ActorCriticRecurrent
+    raise RuntimeError(f"An unknown policy class name: {policy_class_name}")
+
+
+def get_algorithm_class(algorithm_class_name: AlgorithClassName):
+    if algorithm_class_name == "PPO":
+        return PPO
+    raise RuntimeError(f"An unknown algorithm class name: {algorithm_class_name}")
 
 
 class OnPolicyRunner:
 
     def __init__(self,
                  env: VecEnv,
-                 train_cfg,
-                 log_dir=None,
-                 device='cpu'):
-
-        self.cfg=train_cfg["runner"]
-        self.alg_cfg = train_cfg["algorithm"]
-        self.policy_cfg = train_cfg["policy"]
-        self.device = device
+                 train_cfg: TrainConfig = TrainConfig(),
+                 alg_cfg: PpoConfig = PpoConfig(),
+                 policy_cfg: PolicyConfig = PolicyConfig(),
+                 log_dir: Path | str | None = None,
+                 device: torch.device | str = "cpu"):
+        
+        self.train_cfg = train_cfg
+        self.alg_cfg = alg_cfg
+        self.policy_cfg = policy_cfg
+        self.device = torch.device(device)
         self.env = env
         if self.env.num_privileged_obs is not None:
             num_critic_obs = self.env.num_privileged_obs 
         else:
             num_critic_obs = self.env.num_obs
-        actor_critic_class = eval(self.cfg["policy_class_name"]) # ActorCritic
-        actor_critic: ActorCritic = actor_critic_class( self.env.num_obs,
-                                                        num_critic_obs,
-                                                        self.env.num_actions,
-                                                        **self.policy_cfg).to(self.device)
-        alg_class = eval(self.cfg["algorithm_class_name"]) # PPO
-        self.alg: PPO = alg_class(actor_critic, device=self.device, **self.alg_cfg)
-        self.num_steps_per_env = self.cfg["num_steps_per_env"]
-        if "log_interval" in self.cfg.keys():
-            self.log_interval = self.cfg["log_interval"]
-        else:
-            self.log_interval = -1
-        self.save_interval = self.cfg["save_interval"]
-        if "record_interval" in self.cfg.keys():
-            self.record_interval = self.cfg["record_interval"]
-        else:
-            self.record_interval = -1
-        if self.record_interval > 0:
-            self.record_video = True
-        else:
-            self.record_video = False
+        actor_critic_class = get_policy_class(self.train_cfg.policy_class_name)
+        actor_critic: ActorCritic = actor_critic_class(self.env.num_obs,
+                                                       num_critic_obs,
+                                                       self.env.num_actions,
+                                                       self.policy_cfg).to(self.device)
+        alg_class = get_algorithm_class(train_cfg.algorithm_class_name)
+        self.alg: PPO = alg_class(actor_critic, self.alg_cfg, device=self.device)
+        self.log_interval = self.train_cfg.log_interval
+        self.record_video = (self.train_cfg.record_interval > 0)
 
         # init storage and model
-        self.alg.init_storage(self.env.num_envs, self.num_steps_per_env, [self.env.num_obs], [self.env.num_privileged_obs], [self.env.num_actions])
+        self.alg.init_storage(self.env.num_envs, self.train_cfg.num_steps_per_env,
+                              [self.env.num_obs], [self.env.num_privileged_obs], [self.env.num_actions])
 
         # Log
-        self.log_dir = log_dir
+        self.log_dir = Path(log_dir) if log_dir is not None else None
         self.tot_timesteps = 0
         self.tot_time = 0
         self.current_learning_iteration = 0
 
         _, _ = self.env.reset()
     
-    def learn(self, num_learning_iterations, init_at_random_ep_len=False):
+    def learn(self, num_learning_iterations: int, init_at_random_ep_len: bool = False):
         if init_at_random_ep_len:
             self.env.episode_length_buf = torch.randint_like(self.env.episode_length_buf, high=int(self.env.max_episode_length))
         obs = self.env.get_observations()
@@ -112,7 +145,7 @@ class OnPolicyRunner:
             start = time.time()
             # Rollout
             with torch.inference_mode():
-                for i in range(self.num_steps_per_env):
+                for i in range(self.train_cfg.num_steps_per_env):
                     actions = self.alg.act(obs, critic_obs)
                     obs, privileged_obs, rewards, dones, infos = self.env.step(actions)
                     critic_obs = privileged_obs if privileged_obs is not None else obs
@@ -147,7 +180,7 @@ class OnPolicyRunner:
             stop = time.time()
             learn_time = stop - start
 
-            self.tot_timesteps += self.num_steps_per_env * self.env.num_envs
+            self.tot_timesteps += self.train_cfg.num_steps_per_env * self.env.num_envs
             self.tot_time += collection_time + learn_time
 
             if self.log_dir is not None and it % self.log_interval == 0:
@@ -155,26 +188,26 @@ class OnPolicyRunner:
             if self.record_video:
                 self.log_video(it)
             if it < 2500:
-                if it % self.save_interval == 0:
+                if it % self.train_cfg.save_interval == 0:
                     self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
-                if it % self.record_interval == 0 and self.record_interval > 0:
+                if it % self.train_cfg.record_interval == 0 and self.train_cfg.record_interval > 0:
                     self.start_recording()
             elif it < 5000:
-                if it % (2*self.save_interval) == 0:
+                if it % (2*self.train_cfg.save_interval) == 0:
                     self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
-                if it % (2*self.record_interval) == 0 and self.record_interval > 0:
+                if it % (2*self.train_cfg.record_interval) == 0 and self.train_cfg.record_interval > 0:
                     self.start_recording()
             else:
-                if it % (5*self.save_interval) == 0:
+                if it % (5*self.train_cfg.save_interval) == 0:
                     self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(it)))
-                if it % (3*self.record_interval) == 0 and self.record_interval > 0:
+                if it % (3*self.train_cfg.record_interval) == 0 and self.train_cfg.record_interval > 0:
                     self.start_recording()
             ep_infos.clear()
         
         self.current_learning_iteration += num_learning_iterations
         self.save(os.path.join(self.log_dir, 'model_{}.pt'.format(self.current_learning_iteration)))
 
-    def log(self, locs, width=80, pad=35):
+    def log(self, locs: tp.Dict[str, tp.Any], width: int = 80, pad: int = 35):
         iteration_time = locs['collection_time'] + locs['learn_time']
 
         ep_string = f''
@@ -208,12 +241,12 @@ class OnPolicyRunner:
                 # wandb_dict['Step/' + key] = value / mean_episode_length
                 # ep_string += f"""{f'Mean episode {key}:':>{pad}} {value:.4f}\n"""
         mean_std = self.alg.actor_critic.std.mean()
-        fps = int(self.num_steps_per_env * self.env.num_envs / (locs['collection_time'] + locs['learn_time']))
+        fps = int(self.train_cfg.num_steps_per_env * self.env.num_envs / (locs['collection_time'] + locs['learn_time']))
 
         wandb_dict['Loss/value_func'] = locs['mean_value_loss']
         wandb_dict['Loss/surrogate'] = locs['mean_surrogate_loss']
         # wandb_dict['Loss/entropy_coef'] = locs['entropy_coef']
-        wandb_dict['Loss/learning_rate'] = self.alg.learning_rate
+        wandb_dict['Loss/learning_rate'] = self.alg.cfg.learning_rate
         wandb_dict['Loss/kl_mean'] = self.alg.kl_mean
         wandb_dict['Loss/mean_noise_std'] = mean_std.item()
         
@@ -261,7 +294,7 @@ class OnPolicyRunner:
                                locs['num_learning_iterations'] - locs['it']):.1f}s\n""")
         print(log_string)
 
-    def save(self, path, infos=None):
+    def save(self, path: Path | str, infos: tp.Dict[str, tp.Any] | None = None):
         torch.save({
             'model_state_dict': self.alg.actor_critic.state_dict(),
             'optimizer_state_dict': self.alg.optimizer.state_dict(),
@@ -269,7 +302,7 @@ class OnPolicyRunner:
             'infos': infos,
             }, path)
 
-    def load(self, path, load_optimizer=True):
+    def load(self, path: Path | str, load_optimizer: bool = True):
         loaded_dict = torch.load(path)
         self.alg.actor_critic.load_state_dict(loaded_dict['model_state_dict'])
         if load_optimizer:
@@ -277,7 +310,7 @@ class OnPolicyRunner:
         self.current_learning_iteration = loaded_dict['iter']
         return loaded_dict['infos']
 
-    def get_inference_policy(self, device=None):
+    def get_inference_policy(self, device: torch.Tensor | str | None = None):
         self.alg.actor_critic.eval() # switch to evaluation mode (dropout for example)
         if device is not None:
             self.alg.actor_critic.to(device)
@@ -286,7 +319,7 @@ class OnPolicyRunner:
     def start_recording(self):
         self.env.start_recording()
 
-    def log_video(self, it):
+    def log_video(self, it: int):
         frames = self.env.get_recorded_frames()
         if frames is None:
             return

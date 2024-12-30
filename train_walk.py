@@ -1,64 +1,20 @@
+import typing as tp
 import argparse
-import copy
 import os
 import pickle
 import shutil
+from dataclasses import dataclass, field
 
 import numpy as np
 import torch
 import wandb
 from reward_wrapper import Go2
-from locomotion_env import LocoEnv
-from rsl_rl.runners import OnPolicyRunner
+from locomotion_env import LocoEnv, ObservationConfig
+from rsl_rl.modules import PolicyConfig
+from rsl_rl.algorithms import PpoConfig
+from rsl_rl.runners import OnPolicyRunner, TrainConfig
 
 import genesis as gs
-
-
-def get_train_cfg(args):
-
-    train_cfg_dict = {
-        'algorithm': {
-            'clip_param': 0.2,
-            'desired_kl': 0.01,
-            'entropy_coef': 0.01,
-            'gamma': 0.99,
-            'lam': 0.95,
-            'learning_rate': 0.001,
-            'max_grad_norm': 1.0,
-            'num_learning_epochs': 5,
-            'num_mini_batches': 4,
-            'schedule': 'adaptive',
-            'use_clipped_value_loss': True,
-            'value_loss_coef': 1.0,
-        },
-        'init_member_classes': {},
-        'policy': {
-            'activation': 'elu',
-            'actor_hidden_dims': [512, 256, 128],
-            'critic_hidden_dims': [512, 256, 128],
-            'init_noise_std': 1.0,
-        },
-        'runner': {
-            'algorithm_class_name': 'PPO',
-            'checkpoint': -1,
-            'experiment_name': args.exp_name,
-            'load_run': -1,
-            'log_interval': 1,
-            'max_iterations': args.max_iterations,
-            'num_steps_per_env': 24,
-            'policy_class_name': 'ActorCritic',
-            'record_interval': 50,
-            'resume': False,
-            'resume_path': None,
-            'run_name': '',
-            'runner_class_name': 'runner_class_name',
-            'save_interval': 100,
-        },
-        'runner_class_name': 'OnPolicyRunner',
-        'seed': 1,
-    }
-
-    return train_cfg_dict
 
 
 def get_cfgs():
@@ -144,23 +100,6 @@ def get_cfgs():
         # coupling
         'coupling': False,
     }
-    obs_cfg = {
-        'num_obs': 9 + 3 * env_cfg['num_dofs'],
-        'num_history_obs': 1,
-        'obs_noise': {
-            'ang_vel': 0.1,
-            'gravity': 0.02,
-            'dof_pos': 0.01,
-            'dof_vel': 0.5,
-        },
-        'obs_scales': {
-            'lin_vel': 2.0,
-            'ang_vel': 0.25,
-            'dof_pos': 1.0,
-            'dof_vel': 0.05,
-        },
-        'num_priv_obs': 12 + 4 * env_cfg['num_dofs'],
-    }
     reward_cfg = {
         'tracking_sigma': 0.25,
         'soft_dof_pos_limit': 0.9,
@@ -188,7 +127,7 @@ def get_cfgs():
         'ang_vel_range': [-1.0, 1.0],
     }
 
-    return env_cfg, obs_cfg, reward_cfg, command_cfg
+    return env_cfg, reward_cfg, command_cfg
 
 
 def main():
@@ -217,11 +156,16 @@ def main():
     )
 
     log_dir = f'logs/{args.exp_name}'
-    env_cfg, obs_cfg, reward_cfg, command_cfg = get_cfgs()
+    env_cfg, reward_cfg, command_cfg = get_cfgs()
 
     if os.path.exists(log_dir):
         shutil.rmtree(log_dir)
     os.makedirs(log_dir, exist_ok=True)
+
+    obs_cfg = ObservationConfig()
+    obs_cfg.num_obs = 9 + 3 * env_cfg['num_dofs']
+    obs_cfg.num_history_obs = 1
+    obs_cfg.num_privileged_obs = 12 + 4 * env_cfg['num_dofs']
 
     env = Go2(
         num_envs=args.num_envs,
@@ -234,7 +178,14 @@ def main():
         debug=args.debug,
     )
 
-    runner = OnPolicyRunner(env, get_train_cfg(args), log_dir, device='cuda:0')
+    train_cfg = TrainConfig()
+    train_cfg.experiment_name = args.exp_name
+    train_cfg.max_iterations = args.max_iterations
+
+    alg_cfg = PpoConfig()
+    policy_cfg = PolicyConfig()
+
+    runner = OnPolicyRunner(env, train_cfg, alg_cfg, policy_cfg, log_dir, device='cuda:0')
 
     if args.resume is not None:
         resume_dir = f'logs/{args.resume}'

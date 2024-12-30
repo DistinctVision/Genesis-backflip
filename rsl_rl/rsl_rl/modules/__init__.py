@@ -28,5 +28,5 @@
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
 
-from .actor_critic import ActorCritic, ActorCriticNostd
-from .actor_critic_recurrent import ActorCriticRecurrent
+from .actor_critic import ActorCritic, ActorCriticNostd, PolicyConfig
+from .actor_critic_recurrent import ActorCriticRecurrent, HiddenStatesType

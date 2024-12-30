@@ -27,10 +27,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # Copyright (c) 2021 ETH Zurich, Nikita Rudin
-
+import typing as tp
 import torch
 
-def split_and_pad_trajectories(tensor, dones):
+def split_and_pad_trajectories(tensor: torch.Tensor,
+                               dones: torch.Tensor) -> tp.Tuple[torch.Tensor, torch.Tensor]:
     """ Splits trajectories at done indices. Then concatenates them and padds with zeros up to the length og the longest trajectory.
     Returns masks corresponding to valid parts of the trajectories
     Example: 
@@ -64,7 +65,8 @@ def split_and_pad_trajectories(tensor, dones):
     trajectory_masks = trajectory_lengths > torch.arange(0, tensor.shape[0], device=tensor.device).unsqueeze(1)
     return padded_trajectories, trajectory_masks
 
-def unpad_trajectories(trajectories, masks):
+def unpad_trajectories(trajectories: torch.Tensor,
+                       masks: torch.Tensor) -> torch.Tensor:
     """ Does the inverse operation of  split_and_pad_trajectories()
     """
     # Need to transpose before and after the masking to have proper reshaping
