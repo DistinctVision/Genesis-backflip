@@ -1,8 +1,8 @@
-import numpy as np
 import torch
 
-import genesis as gs
-from locomotion_env import *
+from locomotion_env import LocoEnv
+import utils
+
 
 class Go2(LocoEnv):
     
@@ -124,8 +124,8 @@ class Backflip(Go2):
         self.robot.zero_all_dofs_velocity(envs_idx)
 
         # update projected gravity
-        inv_base_quat = gs_inv_quat(self.base_quat)
-        self.projected_gravity = gs_transform_by_quat(
+        inv_base_quat = utils.gs_inv_quat(self.base_quat)
+        self.projected_gravity = utils.gs_transform_by_quat(
             self.global_gravity, inv_base_quat
         )
 
@@ -219,12 +219,12 @@ class Backflip(Go2):
         # Penalize non flat base orientation
         current_time = self.episode_length_buf * self.dt
         phase = (current_time - 0.5).clamp(min=0, max=0.5)
-        quat_pitch = gs_quat_from_angle_axis(4 * phase * torch.pi,
-                                             torch.tensor([0, 1, 0], device=self.device, dtype=torch.float))
+        quat_pitch = utils.gs_quat_from_angle_axis(4 * phase * torch.pi,
+                                                   torch.tensor([0, 1, 0], device=self.device, dtype=torch.float))
 
-        desired_base_quat = gs_quat_mul(quat_pitch, self.base_init_quat.reshape(1, -1).repeat(self.num_envs, 1))
-        inv_desired_base_quat = gs_inv_quat(desired_base_quat)
-        desired_projected_gravity = gs_transform_by_quat(self.global_gravity, inv_desired_base_quat)
+        desired_base_quat = utils.gs_quat_mul(quat_pitch, self.base_init_quat.reshape(1, -1).repeat(self.num_envs, 1))
+        inv_desired_base_quat = utils.gs_inv_quat(desired_base_quat)
+        desired_projected_gravity = utils.gs_transform_by_quat(self.global_gravity, inv_desired_base_quat)
 
         orientation_diff = torch.sum(torch.square(self.projected_gravity - desired_projected_gravity), dim=1)
 
@@ -265,8 +265,8 @@ class Backflip(Go2):
         cur_footsteps_translated = self.foot_positions - self.base_pos.unsqueeze(1)
         footsteps_in_body_frame = torch.zeros(self.num_envs, 4, 3, device=self.device)
         for i in range(4):
-            footsteps_in_body_frame[:, i, :] = gs_quat_apply(gs_quat_conjugate(self.base_quat),
-                                                                 cur_footsteps_translated[:, i, :])
+            footsteps_in_body_frame[:, i, :] = utils.gs_quat_apply(
+                utils.gs_quat_conjugate(self.base_quat), cur_footsteps_translated[:, i, :])
 
         stance_width = 0.3 * torch.zeros([self.num_envs, 1,], device=self.device)
         desired_ys = torch.cat([stance_width / 2, -stance_width / 2, stance_width / 2, -stance_width / 2], dim=1)

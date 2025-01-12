@@ -64,7 +64,7 @@ def get_train_cfg(args):
 def get_cfgs():
     env_cfg = {
         'urdf_path': 'urdf/go2/urdf/go2.urdf',
-        'links_to_keep': ['FL_foot', 'FR_foot', 'RL_foot', 'RR_foot',],
+        'links_to_keep': ['front_left_foot_link', 'front_right_foot_link', 'rear_left_foot_link', 'rear_right_foot_link',],
         'num_actions': 12,
         'num_dofs': 12,
         # joint/link names
