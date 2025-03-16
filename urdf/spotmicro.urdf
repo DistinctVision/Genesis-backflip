@@ -32,7 +32,7 @@
     </collision>
     <inertial>
       <mass value="2.80"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="0.00397" iyy="0.00573" izz="0.00741" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <!-- Lidar Backpack -->
@@ -52,7 +52,7 @@
     </collision>
     <inertial>
       <mass value="0.50"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="0.000344" iyy="0.00061" izz="0.000544" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <joint name="base_lidar" type="fixed">
@@ -76,7 +76,7 @@
     </collision>
     <inertial>
       <mass value="0.20"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="0.000284" iyy="0.00375" izz="0.00387" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <joint name="base_rear" type="fixed">
@@ -99,7 +99,7 @@
     </collision>
     <inertial>
       <mass value="0.20"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="0.000284" iyy="0.00434" izz="0.00446" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <joint name="base_front" type="fixed">
@@ -123,7 +123,7 @@
     </collision>
     <inertial>
       <mass value="0.10"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="5.3e-05" iyy="5.71e-05" izz="2.82e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="front_left_leg_link_cover">
@@ -156,7 +156,7 @@
     </collision>
     <inertial>
       <mass value="0.15"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000572" iyy="0.000565" izz="2.61e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="front_left_foot_link">
@@ -175,7 +175,7 @@
     </collision>
     <inertial>
       <mass value="0.1"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000364" iyy="0.000366" izz="8.98e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="front_left_toe_link">
@@ -195,7 +195,7 @@
     </collision>
     <inertial>
       <mass value="0.05"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="8e-06" iyy="8e-06" izz="8e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <joint name="front_left_shoulder" type="revolute">
@@ -248,7 +248,7 @@
     </collision>
     <inertial>
       <mass value="0.10"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="5.3e-05" iyy="5.71e-05" izz="2.82e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="front_right_leg_link_cover">
@@ -281,7 +281,7 @@
     </collision>
     <inertial>
       <mass value="0.15"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000572" iyy="0.000565" izz="2.61e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="front_right_foot_link">
@@ -300,7 +300,7 @@
     </collision>
     <inertial>
       <mass value="0.1"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000364" iyy="0.000366" izz="8.98e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="front_right_toe_link">
@@ -320,7 +320,7 @@
     </collision>
     <inertial>
       <mass value="0.05"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="8e-06" iyy="8e-06" izz="8e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <joint name="front_right_shoulder" type="revolute">
@@ -373,7 +373,7 @@
     </collision>
     <inertial>
       <mass value="0.10"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="5.3e-05" iyy="5.71e-05" izz="2.82e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="rear_left_leg_link_cover">
@@ -406,7 +406,7 @@
     </collision>
     <inertial>
       <mass value="0.15"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000572" iyy="0.000565" izz="2.61e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="rear_left_foot_link">
@@ -425,7 +425,7 @@
     </collision>
     <inertial>
       <mass value="0.1"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000364" iyy="0.000366" izz="8.98e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="rear_left_toe_link">
@@ -445,7 +445,7 @@
     </collision>
     <inertial>
       <mass value="0.05"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="8e-06" iyy="8e-06" izz="8e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <joint name="rear_left_shoulder" type="revolute">
@@ -498,7 +498,7 @@
     </collision>
     <inertial>
       <mass value="0.10"/>
-      <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <inertia ixx="5.3e-05" iyy="5.71e-05" izz="2.82e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="rear_right_leg_link_cover">
@@ -531,7 +531,7 @@
     </collision>
     <inertial>
       <mass value="0.15"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000572" iyy="0.000565" izz="2.61e-05" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="rear_right_foot_link">
@@ -550,7 +550,7 @@
     </collision>
     <inertial>
       <mass value="0.1"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="0.000364" iyy="0.000366" izz="8.98e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <link name="rear_right_toe_link">
@@ -570,7 +570,7 @@
     </collision>
     <inertial>
       <mass value="0.05"/>
-      <inertia ixx="1000" ixy="0" ixz="0" iyy="1000" iyz="0" izz="1000"/>
+      <inertia ixx="8e-06" iyy="8e-06" izz="8e-06" ixy="0" ixz="0" iyz="0"/>
     </inertial>
   </link>
   <joint name="rear_right_shoulder" type="revolute">
