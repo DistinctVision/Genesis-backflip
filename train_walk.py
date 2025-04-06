@@ -135,7 +135,7 @@ def main():
     parser.add_argument('-e', '--exp_name', type=str, default='Go2')
     parser.add_argument('-v', '--vis', action='store_true', default=False)
     parser.add_argument('-c', '--cpu', action='store_true', default=False)
-    parser.add_argument('-B', '--num_envs', type=int, default=10000)
+    parser.add_argument('-B', '--num_envs', type=int, default=8000)
     parser.add_argument('--max_iterations', type=int, default=1000)
     parser.add_argument('--resume', type=str, default=None)
     parser.add_argument('-o', '--online', action='store_true', default=False)
