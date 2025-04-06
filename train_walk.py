@@ -19,46 +19,46 @@ import genesis as gs
 
 def get_cfgs():
     env_cfg = {
-        'urdf_path': 'urdf/go2/urdf/go2.urdf',
-        'links_to_keep': ['FL_foot', 'FR_foot', 'RL_foot', 'RR_foot',],
+        'urdf_path': 'urdf/spotmicro.urdf',
+        'links_to_keep': [],
         'num_actions': 12,
         'num_dofs': 12,
         # joint/link names
         'default_joint_angles': {  # [rad]
-            'FL_hip_joint': 0.0,
-            'FR_hip_joint': 0.0,
-            'RL_hip_joint': 0.0,
-            'RR_hip_joint': 0.0,
-            'FL_thigh_joint': 0.8,
-            'FR_thigh_joint': 0.8,
-            'RL_thigh_joint': 1.0,
-            'RR_thigh_joint': 1.0,
-            'FL_calf_joint': -1.5,
-            'FR_calf_joint': -1.5,
-            'RL_calf_joint': -1.5,
-            'RR_calf_joint': -1.5,
+            'front_left_shoulder': 0.0,
+            'front_left_leg': 0.0,
+            'front_left_foot': 0.0,
+            'front_right_shoulder': 0.0,
+            'front_right_leg': 0.0,
+            'front_right_foot': 0.0,
+            'rear_left_shoulder': 0.0,
+            'rear_left_leg': 0.0,
+            'rear_left_foot': 0.0,
+            'rear_right_shoulder': 0.0,
+            'rear_right_leg': 0.0,
+            'rear_right_foot': 0.0,
         },
         'dof_names': [
-            'FR_hip_joint',
-            'FR_thigh_joint',
-            'FR_calf_joint',
-            'FL_hip_joint',
-            'FL_thigh_joint',
-            'FL_calf_joint',
-            'RR_hip_joint',
-            'RR_thigh_joint',
-            'RR_calf_joint',
-            'RL_hip_joint',
-            'RL_thigh_joint',
-            'RL_calf_joint',
+            'front_left_shoulder',
+            'front_left_leg',
+            'front_left_foot',
+            'front_right_shoulder',
+            'front_right_leg',
+            'front_right_foot',
+            'rear_left_shoulder',
+            'rear_left_leg',
+            'rear_left_foot',
+            'rear_right_shoulder',
+            'rear_right_leg',
+            'rear_right_foot',
         ],
-        'termination_contact_link_names': ['base'],
-        'penalized_contact_link_names': ['base', 'thigh', 'calf'],
+        'termination_contact_link_names': ['base_link'],
+        'penalized_contact_link_names': ['base_link', 'rear_link', 'lidar_link'],
         'feet_link_names': ['foot'],
         'base_link_name': ['base'],
         # PD
-        'PD_stiffness': {'joint': 30.0},
-        'PD_damping': {'joint': 1.5},
+        'PD_stiffness': {'shoulder': 30.0, 'leg': 30.0, 'foot': 30.0},
+        'PD_damping': {'shoulder': 1.5, 'leg': 1.5, 'foot': 1.5},
         'use_implicit_controller': False,
         # termination
         'termination_if_roll_greater_than': 0.4,
@@ -138,7 +138,7 @@ def main():
     parser.add_argument('-B', '--num_envs', type=int, default=10000)
     parser.add_argument('--max_iterations', type=int, default=1000)
     parser.add_argument('--resume', type=str, default=None)
-    parser.add_argument('-o', '--offline', action='store_true', default=False)
+    parser.add_argument('-o', '--online', action='store_true', default=False)
 
     parser.add_argument('--eval', action='store_true', default=False)
     parser.add_argument('--debug', action='store_true', default=False)
@@ -193,7 +193,7 @@ def main():
         print('==> resume training from', resume_path)
         runner.load(resume_path)
 
-    wandb.init(project='genesis', name=args.exp_name, dir=log_dir, mode='offline' if args.offline else 'online')
+    wandb.init(project='genesis', name=args.exp_name, dir=log_dir, mode='online' if args.online else 'offline')
 
     pickle.dump(
         [env_cfg, obs_cfg, reward_cfg, command_cfg],

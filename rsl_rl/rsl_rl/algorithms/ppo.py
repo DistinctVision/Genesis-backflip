@@ -57,7 +57,9 @@ class PpoConfig:
 
 
 class PPO:
+    
     actor_critic: ActorCritic
+
     def __init__(self,
                  actor_critic: torch.nn.Module,
                  config: PpoConfig = PpoConfig(),

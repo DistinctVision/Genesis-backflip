@@ -59,7 +59,9 @@ def get_activation(act_name: ActivationType) -> nn.Module:
 
 
 class ActorCritic(nn.Module):
+
     is_recurrent = False
+    
     def __init__(self, 
                  num_actor_obs: int,
                  num_critic_obs: int,

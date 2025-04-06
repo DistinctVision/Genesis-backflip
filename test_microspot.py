@@ -152,9 +152,6 @@ def run_microspot_scene(dt: float = 1e-2):
                 if pressed_str in kb_actions:
                     dof_idx, speed = kb_actions[pressed_str]
                     target_dof_pos[:, dof_idx] += speed
-        target_dof_pos = torch.maximum(target_dof_pos, dof_limits[None, :, 0])
-        target_dof_pos = torch.minimum(target_dof_pos, dof_limits[None, :, 1])
-        print(target_dof_pos)
 
         robot.control_dofs_position(position=target_dof_pos, dofs_idx_local=motor_dofs)
         scene.step()
