@@ -26,17 +26,17 @@ def get_cfgs():
         # joint/link names
         'default_joint_angles': {  # [rad]
             'front_left_shoulder': 0.0,
-            'front_left_leg': 0.0,
-            'front_left_foot': 0.0,
+            'front_left_leg': -0.3,
+            'front_left_foot': 1.0,
             'front_right_shoulder': 0.0,
-            'front_right_leg': 0.0,
-            'front_right_foot': 0.0,
+            'front_right_leg': -0.3,
+            'front_right_foot': 1.0,
             'rear_left_shoulder': 0.0,
-            'rear_left_leg': 0.0,
-            'rear_left_foot': 0.0,
+            'rear_left_leg': -0.6,
+            'rear_left_foot': 1.0,
             'rear_right_shoulder': 0.0,
-            'rear_right_leg': 0.0,
-            'rear_right_foot': 0.0,
+            'rear_right_leg': -0.6,
+            'rear_right_foot': 1.0,
         },
         'dof_names': [
             'front_left_shoulder',
@@ -65,7 +65,7 @@ def get_cfgs():
         'termination_if_pitch_greater_than': 0.4,
         'termination_if_height_lower_than': 0.0,
         # base pose
-        'base_init_pos': [0.0, 0.0, 0.42],
+        'base_init_pos': [0.0, 0.0, 0.3],
         'base_init_quat': [1.0, 0.0, 0.0, 0.0],
         # random push
         'push_interval_s': -1,
@@ -103,7 +103,7 @@ def get_cfgs():
     reward_cfg = {
         'tracking_sigma': 0.25,
         'soft_dof_pos_limit': 0.9,
-        'base_height_target': 0.3,
+        'base_height_target': 0.22,
         'reward_scales': {
             'tracking_lin_vel': 1.0,
             'tracking_ang_vel': 0.5,
