@@ -5,7 +5,7 @@ import pickle
 
 import numpy as np
 import torch
-from reward_wrapper import Backflip
+from reward_wrapper import Go2
 from rsl_rl.runners import OnPolicyRunner
 
 import genesis as gs
@@ -31,9 +31,9 @@ def main():
     env_cfg, obs_cfg, reward_cfg, command_cfg = pickle.load(
         open(f'logs/{args.exp_name}/cfgs.pkl', 'rb')
     )
-    reward_cfg['reward_scales'] = {"feet_distance": 1}
+    # reward_cfg['reward_scales'] = {"feet_distance": 1}
 
-    env = Backflip(
+    env = Go2(
         num_envs=1,
         env_cfg=env_cfg,
         obs_cfg=obs_cfg,
@@ -51,8 +51,15 @@ def main():
         policy.to(device='cuda:0')
     else:
         args.max_iterations = 1
-        from train_backflip import get_train_cfg
-        runner = OnPolicyRunner(env, get_train_cfg(args), log_dir, device='cuda:0')
+        from train_walk import TrainConfig, PpoConfig, PolicyConfig
+
+        train_cfg = TrainConfig()
+        train_cfg.experiment_name = args.exp_name
+        train_cfg.max_iterations = args.max_iterations
+
+        alg_cfg = PpoConfig()
+        policy_cfg = PolicyConfig()
+        runner = OnPolicyRunner(env, train_cfg, log_dir=log_dir, device='cuda:0')
 
         resume_path = os.path.join(log_dir, f'model_{args.ckpt}.pt')
         runner.load(resume_path)
@@ -62,6 +69,8 @@ def main():
         policy = runner.get_inference_policy(device='cuda:0')
 
     env.reset()
+    env.commands[:, 0] = -0.5
+    env.commands[:, 1] = 0
     obs = env.get_observations()
 
     with torch.no_grad():

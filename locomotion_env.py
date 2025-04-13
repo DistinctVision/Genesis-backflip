@@ -550,14 +550,15 @@ class LocoEnv(VecEnv):
         self._update_buffers()
 
         resampling_time_s = self.env_cfg['resampling_time_s']
-        envs_idx = (
-            (self.episode_length_buf % int(resampling_time_s / self.dt) == 0)
-            .nonzero(as_tuple=False)
-            .flatten()
-        )
-        self._resample_commands(envs_idx)
-        self._randomize_rigids(envs_idx)
-        self._randomize_controls(envs_idx)
+        if resampling_time_s > 0:
+            envs_idx = (
+                (self.episode_length_buf % int(resampling_time_s / self.dt) == 0)
+                .nonzero(as_tuple=False)
+                .flatten()
+            )
+            self._resample_commands(envs_idx)
+            self._randomize_rigids(envs_idx)
+            self._randomize_controls(envs_idx)
         if self.command_type == 'heading':
             forward = utils.gs_transform_by_quat(self.forward_vec, self.base_quat)
             heading = th.atan2(forward[:, 1], forward[:, 0])
