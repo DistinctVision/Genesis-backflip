@@ -59,7 +59,7 @@ def get_cfgs():
         # PD
         'PD_stiffness': {'shoulder': 30.0, 'leg': 30.0, 'foot': 30.0},
         'PD_damping': {'shoulder': 1.5, 'leg': 1.5, 'foot': 1.5},
-        'use_implicit_controller': False,
+        'use_implicit_controller': True,
         # termination
         'termination_if_roll_greater_than': 0.4,
         'termination_if_pitch_greater_than': 0.4,

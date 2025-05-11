@@ -170,6 +170,8 @@ class LocoEnv(VecEnv):
         if gs.platform != 'macOS':
             self._set_camera()
 
+        self.torques = None
+
         # build
         self.scene.build(n_envs=num_envs)
 

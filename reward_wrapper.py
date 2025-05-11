@@ -37,6 +37,8 @@ class Go2(LocoEnv):
 
     def _reward_torques(self):
         # Penalize torques
+        if self.torques is None:
+            return 0.0
         return torch.sum(torch.square(self.torques), dim=1)
 
     def _reward_dof_vel(self):
